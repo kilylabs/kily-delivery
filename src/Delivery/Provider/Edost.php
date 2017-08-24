@@ -178,16 +178,22 @@ class Edost extends HttpProvider implements ProviderInterface,CalculatorInterfac
             }
 
             list($service,$subservices) = $ret[0];
-            $service = ServiceFactory::factory($service,$subservices);
-            foreach($services as $c_service) {
-                if($c_service->equalsTo($service)) {
-                    $cr = new CalculatorResponse();
-                    $cr->service = $service;
-                    $cr->cost = $tarif->price->__toString();
-                    $cr->period = $tarif->dat->__toString();
 
-                    $all[] = $cr;
+            $service = ServiceFactory::factory($service,$subservices);
+            $cr = new CalculatorResponse();
+            $cr->service = $service;
+            $cr->cost = $tarif->price->__toString();
+            $cr->period = $tarif->dat->__toString();
+
+            if($services) {
+                foreach($services as $c_service) {
+                    if($c_service->equalsTo($service)) {
+                        $all[] = $cr;
+                        break;
+                    }
                 }
+            } else {
+                $all[] = $cr;
             }
 
         }

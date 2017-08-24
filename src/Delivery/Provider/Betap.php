@@ -28,6 +28,10 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
             'RussianPost-0-4' => 'russianpost[parcel]',
             'RussianPost-0-3' => 'russianpost[bookpost]',
             'RussianPost-0-16' => 'russianpost[firstclass]',
+            'DPD-0-CSM'=>'dpd[express_courier]',
+            'DPD-0-PCL'=>'dpd[classic_courier]',
+            'DPD-1-CSM'=>'dpd[express_pvz]',
+            'DPD-1-PCL'=>'dpd[classic_pvz]',
         );
     }
 
@@ -69,8 +73,9 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
         if (isset($opts->cod_sum)) {
             if (is_numeric($opts->cod_sum)) {
                 $tempopts['cod_sum'] = $opts->cod_sum;
-            } else {
+            /*} else {
                 throw new BadOption('cod_sum');
+            */
             }
         }
 
@@ -153,15 +158,20 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
 
             list($service,$subservices) = $ret[0];
             $service = ServiceFactory::factory($service,$subservices);
-            foreach($services as $c_service) {
-                if($c_service->equalsTo($service)) {
-                    $cr = new CalculatorResponse();
-                    $cr->service = $service;
-                    $cr->cost = $tarif->price->__toString();
-                    $cr->period = $tarif->dat->__toString();
+            $cr = new CalculatorResponse();
+            $cr->service = $service;
+            $cr->cost = $tarif->hasAttribute('tariff') ? $tarif['tariff'] : $tarif->price->__toString();
+            $cr->period = $tarif->hasAttribute('days') ? $tarif['days'] : $tarif->dat->__toString();
 
-                    $all[] = $cr;
-                }
+            if($services) {
+                foreach($services as $c_service) {
+                    if($c_service->equalsTo($service)) {
+                        $all[] = $cr;
+                        break;
+                    }
+                } 
+            } else {
+                $all[] = $cr;
             }
 
         }

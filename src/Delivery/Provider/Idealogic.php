@@ -147,8 +147,6 @@ class Idealogic extends HttpProvider implements ProviderInterface, DeliveryInter
         }
         $xparcel->addAttribute('version',self::VERSION);
 
-        echo $xml->asXML();
-
         $res = $this->client->post(self::URL, [
             'verify'=>false,
             'body' => $xml->asXML(),
@@ -159,7 +157,6 @@ class Idealogic extends HttpProvider implements ProviderInterface, DeliveryInter
         }
 
         $xml = $res->getBody()->__toString();
-        echo $xml;
         if (!$xml) {
             throw new RequestError('Got empty response');
         }
@@ -182,15 +179,20 @@ class Idealogic extends HttpProvider implements ProviderInterface, DeliveryInter
 
             list($service,$subservices) = $ret[0];
             $service = ServiceFactory::factory($service,$subservices);
-            foreach($services as $c_service) {
-                if($c_service->equalsTo($service)) {
-                    $cr = new CalculatorResponse();
-                    $cr->service = $service;
-                    $cr->cost = $tarif->price->__toString();
-                    $cr->period = $tarif->dat->__toString();
+            $cr = new CalculatorResponse();
+            $cr->service = $service;
+            $cr->cost = $tarif->price->__toString();
+            $cr->period = $tarif->dat->__toString();
 
-                    $all[] = $cr;
+            if($services) {
+                foreach($services as $c_service) {
+                    if($c_service->equalsTo($service)) {
+                        $all[] = $cr;
+                        break;
+                    }
                 }
+            } else {
+                $all[] = $cr;
             }
 
         }
