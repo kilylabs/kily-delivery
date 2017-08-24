@@ -11,10 +11,10 @@ class Dpd extends Service
 
     public function subservices() {
         return [
-            'consumer',
-            'classic',
-            'warehoue',
-            'courier',
+            'classic_courier',
+            'express_courier',
+            'classic_pvz',
+            'express_pvz',
         ];
     }
 }
