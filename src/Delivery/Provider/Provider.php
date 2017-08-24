@@ -27,6 +27,11 @@ class Provider extends Component
         return [
             'items',
             'person',
+            'weight',
+            'dimensions',
+            'width',
+            'height',
+            'length',
         ];
     }
 
@@ -108,6 +113,19 @@ class Provider extends Component
             } 
         } else {
             $options['person'] = new Person;
+        }
+
+        if(!empty($options['dimensions'])) {
+            @list($w,$h,$l) = explode('x',strtolower($options['dimensions']));
+            if(empty($options['width']) || !$options['width']) {
+                $options['width'] = $w;
+            }
+            if(empty($options['height']) || !$options['height']) {
+                $options['height'] = $h;
+            }
+            if(empty($options['length']) || !$options['length']) {
+                $options['length'] = $l;
+            }
         }
 
         return (object)array_merge(array_combine($this->options(),array_fill(0,count($this->options()),false)),$options);
