@@ -137,7 +137,7 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
         }
         $xparcel->addAttribute('version',self::VERSION);
 
-        echo $xml->asXML();
+        //echo $xml->asXML();
 
         $res = $this->client->post(self::URL, [
             'verify'=>false,
@@ -149,7 +149,7 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
         }
 
         $xml = $res->getBody()->__toString();
-        echo $xml;
+        //echo $xml;
         if (!$xml) {
             throw new RequestError('Got empty response');
         }
