@@ -32,6 +32,9 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
             'DPD-0-PCL'=>'dpd[classic_courier]',
             'DPD-1-CSM'=>'dpd[express_pvz]',
             'DPD-1-PCL'=>'dpd[classic_pvz]',
+            'DPD-1-PCL'=>'dpd[classic_pvz]',
+            'CDEK-1-136'=>'sdek[warehouse]',
+            'CDEK-0-137'=>'sdek[express]',
         );
     }
 
@@ -121,6 +124,17 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
         if($v = $this->getOption('weight')) {
             $xparcel->addAttribute('weight', $v);
         }
+        if($v = $this->getOption('volume')) {
+            $xparcel->addAttribute('volume', $v);
+        } else {
+            if($v = $this->getOption('dimensions')) {
+                $volume = array_product(explode('x',$v));
+                if($volume) {
+                    $volume = round($volume/1000000,4);
+                    $xparcel->addAttribute('volume', $volume);
+                }
+            }
+        }
         $xparcel->addAttribute('version',self::VERSION);
 
         echo $xml->asXML();
@@ -157,11 +171,12 @@ class Betap extends HttpProvider implements ProviderInterface,CalculatorInterfac
             }
 
             list($service,$subservices) = $ret[0];
+
             $service = ServiceFactory::factory($service,$subservices);
             $cr = new CalculatorResponse();
             $cr->service = $service;
-            $cr->cost = $tarif->hasAttribute('tariff') ? $tarif['tariff'] : $tarif->price->__toString();
-            $cr->period = $tarif->hasAttribute('days') ? $tarif['days'] : $tarif->dat->__toString();
+            $cr->cost = isset($tarif['tariff']) ? $tarif['tariff'] : $tarif->price->__toString();
+            $cr->period = isset($tarif['days']) ? $tarif['days'] : $tarif->dat->__toString();
 
             if($services) {
                 foreach($services as $c_service) {
