@@ -74,4 +74,14 @@ class Service extends Component
         return ($this->getName() == $service->getName()) && !array_diff($this->subservices,$service->subservices); 
     }
 
+    public function equalsToServiceString($str) {
+        $services = self::parseServicesStr($str);
+        foreach($services as $service) {
+            if($this->getName() == $service[0]) {
+                if(!array_filter($service[1])) return true;
+                if(!array_diff($service[1],$this->subservices)) return true;
+            }
+        }
+        return false;
+    }
 }
