@@ -98,7 +98,8 @@ class Provider extends Component
         $options = array_merge((array)$val,(array)$prevopts);
         $opt_keys = array_keys($options);
         if($diffopts = array_diff($opt_keys,$this->options())) {
-            throw new BadOption($diffopts);
+            // we ignore unknown options
+            //throw new BadOption($diffopts);
         }
 
         if(!empty($options['items'])) {
