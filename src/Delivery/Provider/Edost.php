@@ -133,35 +133,53 @@ class Edost extends HttpProvider implements ProviderInterface,CalculatorInterfac
         if(!$to) {
             throw new RequestError("You really should define destination address to calculate delivery using edost.ru");
         }
-        if(!$to->getLocality()) {
-            throw new RequestError("Edost requires city (getLocality()) to be defined. The current address string: ".$to->getFullAddress());
-        }
-        $params = array_merge(
-            $this->getAuthParams(),
-            [
-                'to_city' => $to->getLocality(),
-                'weight' => $this->getOption('weight'),
-                'strah' => $this->getOption('insurance_sum', 0),
-                'wd' => $this->getOption('width'),
-                'hg' => $this->getOption('height'),
-                'ln' => $this->getOption('length'),
-            ]
-        );
-        $res = $this->client->post(self::URL, [
-            'body' => $params,
-        ]);
 
-        if ('200' != $res->getStatusCode()) {
-            throw new RequestError('Bad status code: '.$res->getStatusCode());
+        /* edost requires city or region in "to_city" param, so let's try all of them */
+        $addresses = [$to->getLocality()];
+        foreach(array_reverse($to->getAdminLevels()) as $adm) {
+            $addresses[] = $adm['name'];
         }
 
-        $xml = $res->getBody()->__toString();
-        if (!$xml) {
-            throw new RequestError('Got empty response');
-        }
+        $addresses = array_filter($addresses);
 
-        $xml = $res->xml();
-        $this->checkStatusCode($xml->stat->__toString());
+        foreach($addresses as $adr) {
+            $params = array_merge(
+                $this->getAuthParams(),
+                [
+                    'to_city' => $adr,
+                    'weight' => $this->getOption('weight'),
+                    'strah' => $this->getOption('insurance_sum', 0),
+                    'wd' => $this->getOption('width'),
+                    'hg' => $this->getOption('height'),
+                    'ln' => $this->getOption('length'),
+                ]
+            );
+
+            if($zip = $to->getPostalCode()) {
+                $params['zip'] = $zip;
+            }
+
+            $res = $this->client->post(self::URL, [
+                'body' => $params,
+            ]);
+
+            if ('200' != $res->getStatusCode()) {
+                throw new RequestError('Bad status code: '.$res->getStatusCode());
+            }
+
+            $xml = $res->getBody()->__toString();
+            if (!$xml) {
+                throw new RequestError('Got empty response');
+            }
+
+            $xml = $res->xml();
+            try {
+                $this->checkStatusCode($xml->stat->__toString());
+            } catch(RequestError $e) {
+                continue;
+            }
+            break;
+        }
 
         $all = [];
 
