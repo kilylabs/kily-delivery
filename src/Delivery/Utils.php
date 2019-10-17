@@ -22,7 +22,7 @@ class Utils
 
     public static function addrFromString($str)
     {
-        $geocoder = Config::get('geocode.provider');
+        $geocoder = Config::get('geocode.geocoder');
 
         try {
             $geocode = $geocoder->geocode($str);

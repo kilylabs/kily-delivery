@@ -28,8 +28,9 @@ class Config
         $this->_set('default.dimensions.unit', 'mm');
         $this->_set('default.dimensions.format', 'whl');
         $this->_set('default.weight.unit', 'g');
-        $this->_set('geocode.adapter', new \Ivory\HttpAdapter\CurlHttpAdapter());
-        $this->_set('geocode.provider', new \Geocoder\Provider\Yandex($this->_get('geocode.adapter'), $this->_get('default.language')));
+        $this->_set('geocode.adapter', new \Http\Adapter\Guzzle6\Client());
+        $this->_set('geocode.provider', new \Geocoder\Provider\Yandex\Yandex($this->_get('geocode.adapter')),$this->_get('default.language'));
+        $this->_set('geocode.geocoder', new \Geocoder\StatefulGeocoder($this->_get('geocode.provider')));
     }
 
     public static function get($name)

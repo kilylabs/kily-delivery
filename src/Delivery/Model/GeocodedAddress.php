@@ -27,6 +27,7 @@ class GeocodedAddress extends RawAddress
                 throw new AddressNotFound('Error trying to geocode address "'.$this->rawAddress.'": '.$e->__toString());
             }
             foreach($result->toArray() as $k=>$v) {
+                if($k == 'providedBy') continue;
                 if($k == 'country') {
                     if(!$country = $this->getCountry()) {
                         $this->setCountry($country = new Country);

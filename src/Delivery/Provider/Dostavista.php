@@ -11,89 +11,29 @@ use Kily\Delivery\Service\Service;
 use Kily\Delivery\Service\ServiceFactory;
 use Kily\Delivery\Config;
 
-class Edost extends HttpProvider implements ProviderInterface,CalculatorInterface
-{
-    const URL = 'http://www.edost.ru/edost_calc_kln.php';
+use Dostavista\OrderRequest;
+use Dostavista\Point;
 
+class Dostavista extends HttpProvider implements ProviderInterface,CalculatorInterface
+{
     public function getName()
     {
-        return 'edost';
+        return 'dostavista';
     }
 
     protected function serviceMap()
     {
         return array(
-            '1'=>'russianpost[firstclass]',
-            '2'=>'russianpost[parcel,bookpost]',
-            '3'=>'ru_emspost[local]',
-            '5'=>'spsr[express]',
-            '6'=>'sdek[express]',
-            '9'=>'sdek[warehouse]',
-            '10'=>'sdek[superexpress]',
-            '11'=>'ru_dhl[express]',
-            '12'=>'ru_ups[exprexx]',
-            '14'=>'zheldorexp[warehouse]',
-            '15'=>'autotrading[warehouse]',
-            '16'=>'pek[warehouse]',
-            '17'=>'sdek[international]',
-            '18'=>'ru_emspost[international]',
-            '19'=>'spsr[international]',
-            '20'=>'ru_dhl[international]',
-            '21'=>'ru_ups[international]',
-            '22'=>'dellin[warehouse]',
-            '23'=>'megapolis[courier]',
-            '24'=>'megapolis[terminal]',
-            '25'=>'garantpost[local]',
-            '26'=>'garantpost[international]',
-            '27'=>'ponyexpress[local]',
-            '28'=>'ponyexpress[international]',
-            '29'=>'pickpoint',
-            '36'=>'boxberry[warehouse]',
-            '37'=>'sdek[warehouse]',
-            '38'=>'sdek[express]',
-            '39'=>'energy[auto_warehouse]',
-            '40'=>'energy[railway_warehouse]',
-            '41'=>'energy[avia_warehouse]',
-            '42'=>'energy[ship_warehouse]',
-            '43'=>'boxberry[courier]',
-            '44'=>'dpd[classic]',
-            '45'=>'dpd[consumer]',
-            '46'=>'dpd[warehouse]',
-            '47'=>'dpd[courier]',
-            '48'=>'zheldorexp[courier]',
-            '49'=>'pek[courier]',
-            '50'=>'autotrading[courier]',
-            '51'=>'dellin[courier]',
-            '52'=>'energy[auto_courier]',
-            '53'=>'energy[railway_courier]',
-            '54'=>'energy[avia_courier]',
-            '55'=>'energy[ship_courier]',
-            '59'=>'ratek[warehouse]',
-            '60'=>'ratek[courier]',
+            OrderRequest::DELIVERY_TYPE_CAR=>'dostavista[car]',
+            OrderRequest::DELIVERY_TYPE_TRUCK=>'dostavista[truck]',
+            OrderRequest::DELIVERY_TYPE_FOOT=>'dostavista[foot]',
         );
     }
 
     public function supports()
     {
         return [
-            'autotrading',
-            'boxberry',
-            'dellin',
-            'dpd',
-            'energy',
-            'garantpost',
-            'megapolis',
-            'pek',
-            'pickpoint',
-            'ponyexpress',
-            'ratek',
-            'ru_dhl',
-            'ru_emspost',
-            'russianpost',
-            'ru_ups',
-            'sdek',
-            'spsr',
-            'zheldorexp',
+            'dostavista',
         ];
     }
 
@@ -101,14 +41,15 @@ class Edost extends HttpProvider implements ProviderInterface,CalculatorInterfac
     {
         return array_merge(parent::options(),[
             'insurance_sum',
+            'test',
         ]);
     }
 
     protected function getAuthParams()
     {
         return [
-            'id' => $this->api_id,
-            'p' => $this->api_key,
+            'client_id' => $this->api_id,
+            'token' => $this->api_key,
         ];
     }
 
@@ -125,23 +66,54 @@ class Edost extends HttpProvider implements ProviderInterface,CalculatorInterfac
             }
         }
 
+        if (isset($opts->test)) {
+            if (is_numeric($opts->test)) {
+                $tempopts['test'] = (boolean)$opts->test;
+            } else {
+                throw new BadOption('test');
+            }
+        }
+
         parent::setOptions($val, (array) $tempopts);
     }
 
     public function calculateInternal(Address $to=null)
     {
         if(!$to) {
-            throw new RequestError("You really should define destination address to calculate delivery using edost.ru");
+            throw new RequestError("You really should define destination address to calculate delivery using Dostavista");
         }
 
-        /* edost requires city or region in "to_city" param, so let's try all of them */
-        $addresses = [$to->getLocality()];
-        foreach(array_reverse($to->getAdminLevels()) as $adm) {
-            $addresses[] = $adm['name'];
-        }
+        $client = new \Dostavista\Dostavista(new \GuzzleHttp\Client, [
+            'baseUrl' => 'https://robotapitest.dostavista.ru/bapi',
+            'clientId' => $this->api_id,
+            'token' => $this->api_key
+        ]);
 
-        $addresses = array_filter($addresses);
+        $adr = $to->getFullAddress();
 
+            $ret = Service::parseServicesStr($this->serviceMap()[$tarif->id->__toString()]);
+
+        $orderRequest = (new OrderRequest($this->getOption('matter')))
+            ->setRequireCar(OrderRequest::DELIVERY_TYPE_FOOT)
+            ->setBackpaymentMethod(OrderRequest::BACKPAYMENT_CARD)
+            ->setBackpaymentDetails('Карта Сбербанка XXXX, получатель СЕРГЕЙ ИВАНОВИЧ П')
+            ->setPoints([
+                (new Point(
+                    'Москва, Магистральный пер., 1',
+                    new DateTime('17:00'),
+                    new DateTime('18:00'),
+                    '4951234567'
+                )),
+                (new Point(
+                    'Москва, Бобруйская, 28',
+                    new DateTime('18:00'),
+                    new DateTime('19:00'),
+                    '9261234567'
+                ))
+                ->setTaking(3000),
+                ]);
+
+        $deliveryFee = $client->calculateOrder($orderRequest);
         foreach($addresses as $adr) {
             $params = array_merge(
                 $this->getAuthParams(),
@@ -173,7 +145,6 @@ class Edost extends HttpProvider implements ProviderInterface,CalculatorInterfac
             }
 
             $xml = simplexml_load_string($xml);
-
             try {
                 $this->checkStatusCode($xml->stat->__toString());
             } catch(RequestError $e) {

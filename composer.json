@@ -12,11 +12,16 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
+        "php": "^7.0",
         "ext-libxml": "*",
-        "guzzlehttp/guzzle": "5.*",
-        "willdurand/geocoder": "3.*",
-        "mascame/arrayer": "3.*"
+        "guzzlehttp/guzzle": "6.*",
+        "mascame/arrayer": "3.*",
+        "geocoder-php/google-maps-provider": "^4.4",
+        "php-http/guzzle6-adapter": "^2.0",
+        "php-http/message": "^1.7",
+        "geocoder-php/yandex-provider": "^4.2",
+        "gietos/dostavista": "^0.11.0",
+        "dvdoug/boxpacker": "^3.4"
     },
     "autoload": {
         "psr-4": {"Kily\\Delivery\\": "src/Delivery"}
